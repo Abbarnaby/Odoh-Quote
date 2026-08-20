@@ -1025,10 +1025,28 @@ if (quote.interiorType === "B/W & Colour") {
           ? [
 
               {
-                text: 'ADDITIONAL SERVICES',
+          table: {
+            widths: ['*'],
 
-                style: 'sectionHeader'
-              },
+            body: [[
+              {
+                text: 'Additional Services',
+
+                bold: true,
+
+                fontSize: 8,
+
+                color: 'white',
+
+                fillColor: '#0649F5',
+
+                margin: [7, 5, 7, 5]
+              }
+            ]]
+          },
+
+          layout: 'noBorders'
+        },
 
 
               {
@@ -1049,14 +1067,17 @@ if (quote.interiorType === "B/W & Colour") {
                           [
 
                             {
-                              text: 'Cover Design'
+                              text: 'Cover Design',
+                              fontSize: 7.5,
                             },
 
                             {
                               text:
+                              
                                 formatCurrency(
                                   calculations.coverDesignCost
                                 ),
+                                fontSize: 7.5,
 
                               alignment: 'right'
                             }
@@ -1073,7 +1094,8 @@ if (quote.interiorType === "B/W & Colour") {
                           [
 
                             {
-                              text: 'Interior Design'
+                              text: 'Interior Design',
+                              fontSize: 7.5
                             },
 
                             {
@@ -1081,6 +1103,7 @@ if (quote.interiorType === "B/W & Colour") {
                                 formatCurrency(
                                   calculations.interiorDesignCost
                                 ),
+                                fontSize: 7.5,
 
                               alignment: 'right'
                             }
@@ -1098,7 +1121,8 @@ if (quote.interiorType === "B/W & Colour") {
                           [
 
                             {
-                              text: 'Proof Reading'
+                              text: 'Proof Reading',
+                              fontSize: 7.5
                             },
 
                             {
@@ -1106,6 +1130,7 @@ if (quote.interiorType === "B/W & Colour") {
                                 formatCurrency(
                                   calculations.proofreadingCost
                                 ),
+                                fontSize: 7.5,
 
                               alignment: 'right'
                             }
@@ -1123,7 +1148,8 @@ if (quote.interiorType === "B/W & Colour") {
                           [
 
                             {
-                              text: 'Editing'
+                              text: 'Editing',
+                              fontSize: 7.5
                             },
 
                             {
@@ -1131,6 +1157,7 @@ if (quote.interiorType === "B/W & Colour") {
                                 formatCurrency(
                                   calculations.editingCost
                                 ),
+                                fontSize: 7.5,
 
                               alignment: 'right'
                             }
@@ -1152,7 +1179,8 @@ if (quote.interiorType === "B/W & Colour") {
                           [
 
                             {
-                              text: 'ISBN'
+                              text: 'ISBN',
+                              fontSize: 7.5
                             },
 
                             {
@@ -1160,6 +1188,7 @@ if (quote.interiorType === "B/W & Colour") {
                                 formatCurrency(
                                   calculations.isbnCost
                                 ),
+                                fontSize: 7.5,
 
                               alignment: 'right'
                             }
@@ -1178,12 +1207,14 @@ if (quote.interiorType === "B/W & Colour") {
                     ...quote.others.map(item => [
 
                       {
-                        text: item.description
+                        text: item.description,
+                        fontSize: 7.5
                       },
 
                       {
                         text:
                           formatCurrency(item.cost),
+                          fontSize: 7.5,
 
                         alignment: 'right'
                       }
@@ -1234,6 +1265,7 @@ if (quote.interiorType === "B/W & Colour") {
                       {
                         text:
                           'ADDITIONAL SERVICES TOTAL',
+                          fontSize: 7.5,
 
                         bold: true,
 
@@ -1241,7 +1273,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                         fillColor: '#0649F5',
 
-                        margin: [8, 8, 8, 8]
+                        margin: [7, 4, 7, 4]
                       },
 
                       {
@@ -1249,6 +1281,7 @@ if (quote.interiorType === "B/W & Colour") {
                           formatCurrency(
                             additionalServicesTotal
                           ),
+                          fontSize: 7.5,
 
                         bold: true,
 
@@ -1258,7 +1291,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                         alignment: 'right',
 
-                        margin: [8, 8, 8, 8]
+                        margin: [7, 4, 7, 4]
                       }
 
                     ]
@@ -1269,7 +1302,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                 layout: 'noBorders',
 
-                margin: [0, 0, 0, 18]
+                margin: [0, 0, 0, 8]
               }
 
             ]
@@ -1290,7 +1323,7 @@ if (quote.interiorType === "B/W & Colour") {
               {
                 text: 'Final Quotation',
 
-                fontSize: 9,
+                fontSize: 18,
 
                 bold: true,
 
@@ -1298,7 +1331,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                 fillColor: '#0649F5',
 
-                margin: [7, 5, 7, 5]
+                margin: [10, 10, 10, 10]
               },
 
               {
@@ -1307,7 +1340,7 @@ if (quote.interiorType === "B/W & Colour") {
                     calculations.baseBeforeTen
                   ),
 
-                fontSize: 9,
+                fontSize: 18,
 
                 bold: true,
 
@@ -1317,7 +1350,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                 alignment: 'right',
 
-                margin: [7, 5, 7, 5]
+                margin: [10, 10, 10, 10]
               }
 
             ]]
