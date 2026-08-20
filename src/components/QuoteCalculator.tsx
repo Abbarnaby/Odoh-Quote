@@ -22,6 +22,8 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { supabase } from '@/integrations/supabase/client';
 import odohlogo from '@/assets/Odoh.jpg';
+import odohlogo1 from '@/assets/Odoh2.png';
+import AdditionalServices from './admin/AdditionalServices';
 // 🔒 Maintenance mode – set to false to enable the app
 const MAINTENANCE_MODE = false;
 
@@ -101,8 +103,12 @@ hardCoverPrice?: number;
 foldedCoverPrice?: number;
   pageCount: number;
   copies: number;
-  includeDesign: boolean;
-  includeISBN: boolean;
+ includeDesign: boolean;
+includeCoverDesign: boolean;
+includeInteriorDesign: boolean;
+includeEditing: boolean;
+includeProofreading: boolean;
+includeISBN: boolean;
   includeBHR: boolean;
   applyBulkDiscount: number;
   profitMargin: number;
@@ -130,7 +136,10 @@ interface Calculations {
   finishingCost: number;
   packagingCost: number;
   bhrCost: number;
-  designCost: number;
+  coverDesignCost: number;
+  interiorDesignCost: number;
+  proofreadingCost: number;
+  editingCost: number;
   isbnCost: number;
   othersCost: number;
   rawCost: number;
@@ -179,7 +188,11 @@ export const QuoteCalculator: React.FC = () => {
     pageCount: 0,
     copies: 0,
     includeDesign: false,
-    includeISBN: false,
+includeCoverDesign: false,
+includeInteriorDesign: false,
+includeEditing: false,
+includeProofreading: false,
+includeISBN: false,
     includeBHR: false,
     applyBulkDiscount: 0,
     profitMargin: 0,
@@ -302,12 +315,50 @@ console.log("Matched packaging:", packaging);
 
     const bhrCost = quote.includeBHR && quote.bhrHours ? quote.bhrHours : 0;
 
-    const designService = additionalServices.find(s => s.service_name === 'Design');
-    const isbnService = additionalServices.find(s => s.service_name === 'ISBN');
-    
-    const designCost = quote.includeDesign ? (designService?.cost || 15000) : 0;
-    const isbnCost = quote.includeISBN ? (isbnService?.cost || 10000) : 0;
-    const othersCost = quote.others.reduce((sum, item) => sum + item.cost, 0);
+   const coverDesignService = additionalServices.find(
+  s => s.service_name === 'Cover Design'
+);
+
+const interiorDesignService = additionalServices.find(
+  s => s.service_name === 'Interior Design'
+);
+
+const editingService = additionalServices.find(
+  s => s.service_name === 'Editing'
+);
+
+const proofreadingService = additionalServices.find(
+  s => s.service_name === 'Proofreading'
+);
+
+const isbnService = additionalServices.find(
+  s => s.service_name === 'ISBN'
+);
+
+const coverDesignCost = quote.includeCoverDesign
+  ? (coverDesignService?.cost || 0)
+  : 0;
+
+const interiorDesignCost = quote.includeInteriorDesign
+  ? (interiorDesignService?.cost || 0)
+  : 0;
+
+const editingCost = quote.includeEditing
+  ? (editingService?.cost || 0)
+  : 0;
+
+const proofreadingCost = quote.includeProofreading
+  ? (proofreadingService?.cost || 0)
+  : 0;
+
+const isbnCost = quote.includeISBN
+  ? (isbnService?.cost || 10000)
+  : 0;
+
+const othersCost = quote.others.reduce(
+  (sum, item) => sum + item.cost,
+  0
+);
 
     const totalPaperCost = paperCost * quote.pageCount * quote.copies;
     let totalTonerCost = 0;
@@ -337,11 +388,19 @@ if (quote.interiorType === "B/W & Colour") {
     const rawCost = safe(totalPaperCost) + safe(totalTonerCost) + safe(totalCoverCost) + safe(totalFinishingCost) + safe(totalPackagingCost) ;
     const profitAmount = (safe(rawCost) * safe(quote.profitMargin)) / 100;
     const vat = quote.includeVAT
-  ? (rawCost + designCost + isbnCost + bhrCost + othersCost) * 0.075
+  ? (rawCost +  coverDesignCost +
+      interiorDesignCost +
+      editingCost +
+      proofreadingCost +
+      isbnCost + bhrCost + othersCost) * 0.075
   : 0;
     
 
-  const baseBeforeTen =  safe(rawCost) + safe(profitAmount) +  safe(designCost) +  safe(isbnCost) +  safe(bhrCost) +  safe(othersCost) + vat + quote.extraCost -  safe(quote.applyBulkDiscount);
+  const baseBeforeTen =  safe(rawCost) + safe(profitAmount) +   safe(coverDesignCost) +
+  safe(interiorDesignCost) +
+  safe(editingCost) +
+  safe(proofreadingCost) +
+  safe(isbnCost) +  safe(bhrCost) +  safe(othersCost) + vat + quote.extraCost -  safe(quote.applyBulkDiscount);
 
 
 
@@ -352,7 +411,10 @@ if (quote.interiorType === "B/W & Colour") {
     finishingCost: safe(totalFinishingCost),
     packagingCost: safe(totalPackagingCost),
     bhrCost: safe(bhrCost),
-    designCost: safe(designCost),
+    coverDesignCost: safe(coverDesignCost),
+    interiorDesignCost: safe(interiorDesignCost),
+    editingCost: safe(editingCost),
+    proofreadingCost: safe(proofreadingCost),
     isbnCost: safe(isbnCost),
     othersCost: safe(othersCost),
     rawCost: safe(rawCost),
@@ -448,6 +510,22 @@ if (quote.interiorType === "B/W & Colour") {
       others: prev.others.filter((_, i) => i !== index)
     }));
   };
+  const getBase64Image = async (imageUrl: string): Promise<string> => {
+  const response = await fetch(imageUrl);
+  const blob = await response.blob();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      resolve(reader.result as string);
+    };
+
+    reader.onerror = reject;
+
+    reader.readAsDataURL(blob);
+  });
+};
 
   const generatePDF = async (): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -464,6 +542,7 @@ if (quote.interiorType === "B/W & Colour") {
     try {
       // Configure pdfMake with fonts
       pdfMake.vfs = pdfFonts.vfs;
+        const logoBase64 = await getBase64Image(odohlogo1);
 
       // Generate quote details
       const quotationId = `QT-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`;
@@ -479,9 +558,12 @@ if (quote.interiorType === "B/W & Colour") {
        
       const printingCostTotal = printingCostSubTotal;
       // Calculate additional services total (excluding BHR and Profit Margin)
-      const additionalServicesTotal = calculations.designCost + calculations.isbnCost  - quote.applyBulkDiscount;
+      const additionalServicesTotal = calculations.coverDesignCost  +   calculations.interiorDesignCost +
+  calculations.editingCost +
+  calculations.proofreadingCost + calculations.isbnCost  - quote.applyBulkDiscount;
 
       
+   // =====================================================
     // DOCUMENT DEFINITION
     // =====================================================
 
@@ -502,416 +584,356 @@ if (quote.interiorType === "B/W & Colour") {
         // HEADER
         // =================================================
 
+       {
+          table: {
+            widths: ['auto', '*'],
+
+            body: [[
+
+              // -------------------------------------------
+              // LOGO
+              // -------------------------------------------
+              {
+  image: logoBase64,
+  width: 65,
+  height: 65,
+  margin: [8, 7, 8, 7],
+  alignment: 'center'
+},
+
+              // -------------------------------------------
+              // COMPANY INFORMATION
+              // -------------------------------------------
+              {
+                stack: [
+
+                  {
+                    text: 'The Odoh Publishers.',
+                    fontSize: 9,
+                    bold: true,
+                    color: 'white',
+                    alignment: 'right'
+                  },
+
+                  {
+                    text:
+                      'Shop 7 Futureview Plaza along Yakowa\n' +
+                      'Expressway, Mahuta,\n' +
+                      'Kaduna State, Nigeria.',
+
+                    fontSize: 6.5,
+                    color: 'white',
+                    alignment: 'right',
+                    margin: [0, 2, 0, 0]
+                  },
+
+                  {
+                    text:
+                      'Phone: 07025665328',
+
+                    fontSize: 6.5,
+                    color: 'white',
+                    alignment: 'right',
+                    margin: [0, 2, 0, 0]
+                  },
+
+                  {
+                    text:
+                      'Email: the.odoh.publishers.ltd@gmail.com',
+
+                    fontSize: 6.5,
+                    color:'white',
+                    alignment: 'right'
+                  }
+
+                ],
+
+                margin: [5, 7, 8, 7]
+              }
+
+            ]]
+          },
+
+          layout: 'noBorders',
+
+          fillColor:  '#0649F5',
+
+          margin: [0, 0, 0, 12]
+        },
+// =================================================
+        // QUOTATION TITLE
+        // =================================================
+        {
+          text: 'Quotation',
+
+          fontSize: 20,
+
+          bold: true,
+
+          color:'#0649F5',
+
+          margin: [0, 0, 0, 5]
+        },
+
+
+
+
+               // =================================================
+        // CLIENT + QUOTATION DETAILS
+        // =================================================
         {
           columns: [
 
             // ---------------------------------------------
-            // COMPANY INFORMATION
+            // CLIENT
             // ---------------------------------------------
-
             {
               width: '*',
 
               stack: [
 
                 {
-                  text: 'THE ODOH PUBLISHERS',
+                  text: 'To:',
 
-                  fontSize: 22,
+                  fontSize: 7.5,
 
                   bold: true,
 
-                  color: '#102A56'
+                  color: '#0649F5'
                 },
 
                 {
                   text:
-                    'Shop 7 Futureview Plaza along Yakowa\n' +
-                    'Expressway, Mahuta,\n' +
-                    'Kaduna State, Nigeria.',
+                    `Clients name : ${
+                      quote.customerName || '________________'
+                    }`,
 
-                  fontSize: 9,
+                  fontSize: 7.5,
 
-                  color: '#333333',
-
-                  margin: [0, 5, 0, 0]
-                },
-
-                {
-                  text: 'Phone: 07025665328',
-
-                  fontSize: 9,
-
-                  margin: [0, 4, 0, 0]
+                  color: '#0649F5'
                 },
 
                 {
                   text:
-                    'Email: the.odoh.publishers.ltd@gmail.com',
+                    `Phone : ${
+                      quote.customerPhone || '________________'
+                    }`,
 
-                  fontSize: 9
-                }
+                  fontSize: 7.5,
+
+                  color: '#0649F5'
+                },
+
+                {
+                  text:
+                    `Email : ${
+                      quote.customerEmail || '________________'
+                    }`,
+
+                  fontSize: 7.5,
+
+                  color: '#0649F5',
+                },
+
+                ...(quote.customerAddress
+                  ? [{
+                      text:
+                        `Address : ${quote.customerAddress}`,
+
+                      fontSize: 7.5,
+
+                      color:  '#0649F5',
+                    }]
+                  : []),
+
+                ...(quote.customerBookTitle
+                  ? [{
+                      text:
+                        `Book Title : ${quote.customerBookTitle}`,
+
+                      fontSize: 7.5,
+
+                      color:  '#0649F5',
+                    }]
+                  : [])
 
               ]
             },
 
-
             // ---------------------------------------------
-            // QUOTATION TITLE
+            // QUOTATION DETAILS
             // ---------------------------------------------
-
             {
-              
-              width: 150,
+              width: '*',
 
               stack: [
-                
 
                 {
-                  
-                  text: 'THE ODOH PUBLISHERS',
+                  text: 'Quotation Details:',
 
-                  fontSize: 22,
+                  fontSize: 7.5,
 
                   bold: true,
 
-                  color: '#102A56'
+                  color:  '#0649F5',
                 },
 
                 {
                   text:
-                    'Shop 7 Futureview Plaza along Yakowa\n' +
-                    'Expressway, Mahuta,\n' +
-                    'Kaduna State, Nigeria.',
+                    `Quotation No : ${quotationId}`,
 
-                  fontSize: 9,
+                  fontSize: 7.5,
 
-                  color: '#333333',
-
-                  margin: [0, 5, 0, 0]
-                },
-
-                {
-                  text: 'Phone: 07025665328',
-
-                  fontSize: 9,
-
-                  margin: [0, 4, 0, 0]
+                  color:  '#0649F5',
                 },
 
                 {
                   text:
-                    'Email: the.odoh.publishers.ltd@gmail.com',
+                    `Date : ${currentDate}`,
 
-                  fontSize: 9
+                  fontSize: 7.5,
+
+                  color:  '#0649F5',
+                },
+
+                {
+                  text:
+                    `Job Number : ${
+                      quote.customerOrderNo || '________'
+                    }`,
+
+                  fontSize: 7.5,
+
+                  color: '#0649F5',
+                },
+
+                {
+                  text:
+                    `Prepared by : ${
+                      quote.staffName || '________'
+                    }`,
+
+                  fontSize: 7.5,
+
+                  color: '#0649F5',
                 }
 
               ]
             }
 
           ],
-          
 
-          margin: [0, 0, 0, 18]
+          columnGap: 20,
+
+          margin: [0, 0, 0, 8]
         },
 
 
-        // =================================================
-        // CLIENT + QUOTATION INFORMATION
-        // =================================================
 
+       // =================================================
+        // BOOK SPECIFICATIONS HEADER
+        // =================================================
+        {
+          table: {
+            widths: ['*'],
+
+            body: [[
+              {
+                text: 'Book Specifications',
+
+                bold: true,
+
+                fontSize: 9,
+
+                color: 'white',
+
+                fillColor: '#0649F5',
+
+                margin: [7, 5, 7, 5]
+              }
+            ]]
+          },
+
+          layout: 'noBorders'
+        },
+
+        // =================================================
+        // BOOK SPECIFICATIONS TABLE
+        // =================================================
         {
           table: {
 
-            widths: ['*', '*'],
-
-            body: [
-
-              // -------------------------------------------
-              // HEADERS
-              // -------------------------------------------
-
-              [
-
-                {
-                  text: 'TO',
-
-                  bold: true,
-
-                  color: '#102A56',
-
-                  fontSize: 12,
-
-                  fillColor: '#EEF3FA',
-
-                  margin: [8, 7, 8, 7]
-                },
-
-                {
-                  text: 'QUOTATION DETAILS',
-
-                  bold: true,
-
-                  color: '#102A56',
-
-                  fontSize: 12,
-
-                  fillColor: '#EEF3FA',
-
-                  margin: [8, 7, 8, 7]
-                }
-
-              ],
-
-
-              // -------------------------------------------
-              // INFORMATION
-              // -------------------------------------------
-
-              [
-
-                {
-                  stack: [
-
-                    {
-                      text:
-                        `Client's Name: ${
-                          quote.customerName || '________________'
-                        }`,
-
-                      fontSize: 9
-                    },
-
-                    {
-                      text:
-                        `Phone: ${
-                          quote.customerPhone || '________________'
-                        }`,
-
-                      fontSize: 9,
-
-                      margin: [0, 4, 0, 0]
-                    },
-
-                    {
-                      text:
-                        `Email: ${
-                          quote.customerEmail || '________________'
-                        }`,
-
-                      fontSize: 9,
-
-                      margin: [0, 4, 0, 0]
-                    },
-
-                    ...(quote.customerAddress
-                      ? [
-                          {
-                            text:
-                              `Address: ${quote.customerAddress}`,
-
-                            fontSize: 9,
-
-                            margin: [0, 4, 0, 0]
-                          }
-                        ]
-                      : []),
-
-                    ...(quote.customerBookTitle
-                      ? [
-                          {
-                            text:
-                              `Book Title: ${quote.customerBookTitle}`,
-
-                            fontSize: 9,
-
-                            margin: [0, 4, 0, 0]
-                          }
-                        ]
-                      : [])
-
-                  ],
-
-                  margin: [8, 8, 8, 8]
-                },
-
-
-                {
-                  stack: [
-
-                    {
-                      text:
-                        `Quotation No: ${quotationId}`,
-
-                      fontSize: 9
-                    },
-
-                    {
-                      text:
-                        `Date: ${currentDate}`,
-
-                      fontSize: 9,
-
-                      margin: [0, 4, 0, 0]
-                    },
-
-                    {
-                      text:
-                        `Job Number: ${
-                          quote.customerOrderNo ||
-                          '________________'
-                        }`,
-
-                      fontSize: 9,
-
-                      margin: [0, 4, 0, 0]
-                    },
-
-                    {
-                      text:
-                        `Prepared by: ${
-                          quote.staffName ||
-                          '________________'
-                        }`,
-
-                      fontSize: 9,
-
-                      margin: [0, 4, 0, 0]
-                    },
-
-                    ...(quote.staffId
-                      ? [
-                          {
-                            text:
-                              `Staff ID: ${quote.staffId}`,
-
-                            fontSize: 9,
-
-                            margin: [0, 4, 0, 0]
-                          }
-                        ]
-                      : [])
-
-                  ],
-
-                  margin: [8, 8, 8, 8]
-                }
-
-              ]
-
-            ]
-
-          },
-
-          layout: {
-
-            hLineWidth: () => 0.6,
-
-            vLineWidth: () => 0.6,
-
-            hLineColor: () => '#CBD5E1',
-
-            vLineColor: () => '#CBD5E1'
-
-          },
-
-          margin: [0, 0, 0, 18]
-        },
-
-
-        // =================================================
-        // BOOK SPECIFICATIONS
-        // =================================================
-
-        {
-          text: 'BOOK SPECIFICATIONS',
-
-          style: 'sectionHeader'
-        },
-
-
-        {
-          table: {
-
-            widths: ['*', '*'],
+            widths: ['50%', '50%'],
 
             body: [
 
               [
                 {
-                  text: 'Book Size',
-
-                  bold: true
+                  text: 'Book size:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: quote.bookSize || '-'
+                  text: quote.bookSize || '-',
+                  fontSize: 7.5
                 }
               ],
 
               [
                 {
-                  text: 'Cover Type',
-
-                  bold: true
+                  text: 'Cover Type:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: quote.coverType || '-'
+                  text: quote.coverType || '-',
+                  fontSize: 7.5
                 }
               ],
 
               [
                 {
-                  text: 'Page Count',
-
-                  bold: true
+                  text: 'Page count:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: `${quote.pageCount || 0}`
+                  text: `${quote.pageCount || 0}`,
+                  fontSize: 7.5
                 }
               ],
 
               [
                 {
-                  text: 'Copies',
-
-                  bold: true
+                  text: 'Copies:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: `${quote.copies || 0}`
+                  text: `${quote.copies || 0}`,
+                  fontSize: 7.5
                 }
               ],
 
               [
                 {
-                  text: 'Paper Type',
-
-                  bold: true
+                  text: 'Paper Type:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: quote.paperType || '-'
+                  text: quote.paperType || '-',
+                  fontSize: 7.5
                 }
               ],
 
               [
                 {
-                  text: 'Interior Type',
-
-                  bold: true
+                  text: 'Interior Type:',
+                  fontSize: 7.5
                 },
-
                 {
-                  text: quote.interiorType || '-'
+                  text: quote.interiorType || '-',
+                  fontSize: 7.5
                 }
-
               ]
 
             ]
-
           },
 
           layout: {
@@ -920,80 +942,83 @@ if (quote.interiorType === "B/W & Colour") {
 
             vLineWidth: () => 0.5,
 
-            hLineColor: () => '#CBD5E1',
+            hLineColor: () => '#B8B8B8',
 
-            vLineColor: () => '#CBD5E1',
+            vLineColor: () => '#B8B8B8',
 
             paddingLeft: () => 7,
 
             paddingRight: () => 7,
 
-            paddingTop: () => 6,
+            paddingTop: () => 3,
 
-            paddingBottom: () => 6
+            paddingBottom: () => 3
 
           },
 
-          margin: [0, 0, 0, 12]
+          margin: [0, 0, 0, 0]
         },
 
 
-        // =================================================
+       // =================================================
         // PRINTING COST TOTAL
         // =================================================
-
         {
           table: {
 
             widths: ['*', 'auto'],
 
-            body: [
+            body: [[
 
-              [
+              {
+                text: 'Printing Cost Total',
 
-                {
-                  text: 'PRINTING COST TOTAL',
+                bold: true,
 
-                  bold: true,
+                fontSize: 7.5,
 
-                  color: 'white',
+                color: 'white',
 
-                  fillColor: '#102A56',
+                fillColor: '#0649F5',
 
-                  margin: [8, 8, 8, 8]
-                },
+                margin: [7, 4, 7, 4]
+              },
 
-                {
-                  text: formatCurrency(printingCostTotal),
+              {
+                text: formatCurrency(printingCostTotal),
 
-                  bold: true,
+                bold: true,
 
-                  color: 'white',
+                fontSize: 7.5,
 
-                  fillColor: '#102A56',
+                color: 'white',
 
-                  alignment: 'right',
+               fillColor: '#0649F5',
 
-                  margin: [8, 8, 8, 8]
-                }
+                alignment: 'right',
 
-              ]
+                margin: [7, 4, 7, 4]
+              }
 
-            ]
+            ]]
 
           },
 
           layout: 'noBorders',
 
-          margin: [0, 0, 0, 18]
+          margin: [0, 0, 0, 8]
         },
+
 
 
         // =================================================
         // ADDITIONAL SERVICES
         // =================================================
 
-        ...(quote.includeDesign ||
+        ...(quote.includeCoverDesign ||
+          quote.includeInteriorDesign ||
+          quote.includeProofreading ||
+          quote.includeEditing ||
         quote.includeISBN ||
         quote.others.length > 0
 
@@ -1017,20 +1042,44 @@ if (quote.interiorType === "B/W & Colour") {
                     // DESIGN
                     // -------------------------------------
 
-                    ...(quote.includeDesign
+                    ...(quote.includeCoverDesign
 
                       ? [
 
                           [
 
                             {
-                              text: 'Design'
+                              text: 'Cover Design'
                             },
 
                             {
                               text:
                                 formatCurrency(
-                                  calculations.designCost
+                                  calculations.coverDesignCost
+                                ),
+
+                              alignment: 'right'
+                            }
+
+                          ]
+
+                        ]
+
+                      : []),
+ ...(quote.includeInteriorDesign
+
+                      ? [
+
+                          [
+
+                            {
+                              text: 'Interior Design'
+                            },
+
+                            {
+                              text:
+                                formatCurrency(
+                                  calculations.interiorDesignCost
                                 ),
 
                               alignment: 'right'
@@ -1042,6 +1091,55 @@ if (quote.interiorType === "B/W & Colour") {
 
                       : []),
 
+                       ...(quote.includeProofreading
+
+                      ? [
+
+                          [
+
+                            {
+                              text: 'Proof Reading'
+                            },
+
+                            {
+                              text:
+                                formatCurrency(
+                                  calculations.proofreadingCost
+                                ),
+
+                              alignment: 'right'
+                            }
+
+                          ]
+
+                        ]
+
+                      : []),
+
+                       ...(quote.includeEditing
+
+                      ? [
+
+                          [
+
+                            {
+                              text: 'Editing'
+                            },
+
+                            {
+                              text:
+                                formatCurrency(
+                                  calculations.editingCost
+                                ),
+
+                              alignment: 'right'
+                            }
+
+                          ]
+
+                        ]
+
+                      : []),
 
                     // -------------------------------------
                     // ISBN
@@ -1141,7 +1239,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                         color: 'white',
 
-                        fillColor: '#102A56',
+                        fillColor: '#0649F5',
 
                         margin: [8, 8, 8, 8]
                       },
@@ -1156,7 +1254,7 @@ if (quote.interiorType === "B/W & Colour") {
 
                         color: 'white',
 
-                        fillColor: '#102A56',
+                        fillColor: '#0649F5',
 
                         alignment: 'right',
 
@@ -1179,195 +1277,247 @@ if (quote.interiorType === "B/W & Colour") {
           : []),
 
 
-        // =================================================
+       // =================================================
         // FINAL QUOTATION
         // =================================================
-
         {
           table: {
 
             widths: ['*', 'auto'],
 
-            body: [
+            body: [[
 
-              [
+              {
+                text: 'Final Quotation',
 
-                {
-                  text: 'FINAL QUOTATION',
+                fontSize: 9,
 
-                  fontSize: 16,
+                bold: true,
 
-                  bold: true,
+                color: 'white',
 
-                  color: 'white',
+                fillColor: '#0649F5',
 
-                  fillColor: '#0A1D3A',
+                margin: [7, 5, 7, 5]
+              },
 
-                  margin: [12, 12, 12, 12]
-                },
+              {
+                text:
+                  formatCurrency(
+                    calculations.baseBeforeTen
+                  ),
 
-                {
-                  text:
-                    formatCurrency(
-                      calculations.baseBeforeTen
-                    ),
+                fontSize: 9,
 
-                  fontSize: 16,
+                bold: true,
 
-                  bold: true,
+                color: 'white',
 
-                  color: 'white',
+               fillColor: '#0649F5',
 
-                  fillColor: '#0A1D3A',
+                alignment: 'right',
 
-                  alignment: 'right',
+                margin: [7, 5, 7, 5]
+              }
 
-                  margin: [12, 12, 12, 12]
-                }
-
-              ]
-
-            ]
+            ]]
 
           },
 
           layout: 'noBorders',
 
-          margin: [0, 5, 0, 20]
+          margin: [0, 0, 0, 8]
         },
 
 
-        // =================================================
-        // TERMS & CONDITIONS
-        // =================================================
 
+        // =================================================
+        // TERMS + SIGNATURE
+        // =================================================
         {
-          text: 'TERMS & CONDITIONS',
+          table: {
 
-          style: 'sectionHeader'
+            widths: ['55%', '45%'],
+            fillColor: '#0645F5',
+
+            body: [[
+              
+
+              // -------------------------------------------
+              // TERMS
+              // -------------------------------------------
+              {
+                stack: [
+
+                  {
+                    text: 'Terms & Conditions',
+
+                    bold: true,
+
+                    fontSize: 7.5,
+
+                    color: 'black',
+
+                   fillColor: '#0649F5',
+
+                    margin: [5, 4, 5, 4]
+                  },
+
+                  {
+                    text:
+                      '1. This quotation is official and legal property of The Odoh Publishers Ltd.',
+
+                    fontSize: 6.5,
+fillColor: '#0645F5',
+                    margin: [5, 5, 5, 2]
+                  },
+
+                  {
+                    text:
+                      '2. This quotation is valid for 30 days following the date specified.',
+fillColor: '#0645F5',
+                    fontSize: 6.5,
+
+                    margin: [5, 2, 5, 5]
+                  }
+
+                ]
+              },
+
+              // -------------------------------------------
+              // SIGNATURE
+              // -------------------------------------------
+              {
+                stack: [
+
+                  
+                   
+                                        {
+                      text:'signature',
+                    fontSize: 7.5,
+                    fillColor: '#0645F5',
+                    alignment: 'center',
+
+                    margin: [5, 0, 5, 5]
+                  }
+
+                ]
+              }
+
+            ]]
+
+          },
+
+          layout: {
+
+            hLineWidth: () => 0.5,
+
+            vLineWidth: () => 0.5,
+
+            hLineColor: () => '#B8B8B8',
+
+            vLineColor: () => '#B8B8B8'
+
+          },
+
+          margin: [0, 0, 0, 8]
         },
 
 
-        {
-          stack: [
 
-            {
-              text:
-                '1. This quotation is official and legal property of The Odoh Publishers Ltd.',
-
-              fontSize: 8
-            },
-
-            {
-              text:
-                '2. This quotation is valid for 30 days following the date specified.',
-
-              fontSize: 8,
-
-              margin: [0, 4, 0, 0]
-            }
-
-          ],
-
-          margin: [0, 0, 0, 15]
-        },
-
-
+               // =================================================
+        // ACCOUNT DETAILS HEADER
         // =================================================
-        // SIGNATURE
-        // =================================================
-
-        {
-          columns: [
-
-            {
-              text:
-                'Signature for Quotation Acceptance\n\n' +
-                '____________________________',
-
-              fontSize: 9
-            },
-
-            {
-              text:
-                'Prepared by\n\n' +
-                '____________________________',
-
-              fontSize: 9,
-
-              alignment: 'right'
-            }
-
-          ],
-
-          margin: [0, 0, 0, 18]
-        },
-
-
-        // =================================================
-        // ACCOUNT DETAILS
-        // =================================================
-
         {
           table: {
 
             widths: ['*'],
 
+            body: [[
+
+              {
+                text:
+                  'The Odoh Publishers Account Details',
+
+                bold: true,
+
+                fontSize: 8,
+
+                color: 'white',
+
+                fillColor: '#0649F5',
+
+                margin: [7, 5, 7, 5]
+              }
+
+            ]]
+
+          },
+
+          layout: 'noBorders'
+        },
+
+        // =================================================
+        // ACCOUNT DETAILS
+        // =================================================
+        {
+          table: {
+
+            widths: ['*', 'auto', '*'],
+
             body: [
 
               [
                 {
-                  text:
-                    'THE ODOH PUBLISHERS ACCOUNT DETAILS',
+                  text: 'Bank Name',
+                  fontSize: 7
+                },
 
-                  bold: true,
+                {
+                  text: ':',
+                  fontSize: 7,
+                  alignment: 'center'
+                },
 
-                  color: 'white',
-
-                  fillColor: '#102A56',
-
-                  alignment: 'center',
-
-                  margin: [8, 8, 8, 8]
+                {
+                  text: 'MoniePoint',
+                  fontSize: 7
                 }
               ],
 
               [
                 {
-                  text:
-                    'Bank Name: MoniePoint',
+                  text: 'Account No',
+                  fontSize: 7
+                },
 
-                  alignment: 'center',
+                {
+                  text: ':',
+                  fontSize: 7,
+                  alignment: 'center'
+                },
 
-                  fontSize: 9,
-
-                  margin: [5, 5, 5, 2]
+                {
+                  text: '6238593555',
+                  fontSize: 7
                 }
               ],
 
               [
                 {
-                  text:
-                    'Account No: 6238593555',
+                  text: 'Account Name',
+                  fontSize: 7
+                },
 
-                  alignment: 'center',
-
-                  fontSize: 9,
-
-                  margin: [5, 2, 5, 2]
-                }
-              ],
-
-              [
                 {
-                  text:
-                    'Account Name: The Odoh Publishers Ltd',
+                  text: ':',
+                  fontSize: 7,
+                  alignment: 'center'
+                },
 
-                  alignment: 'center',
-
-                  fontSize: 9,
-
-                  margin: [5, 2, 5, 7]
+                {
+                  text: 'The Odoh Publishers Ltd',
+                  fontSize: 7
                 }
               ]
 
@@ -1377,103 +1527,108 @@ if (quote.interiorType === "B/W & Colour") {
 
           layout: {
 
-            hLineWidth: () => 0.6,
+            hLineWidth: () => 0.5,
 
-            vLineWidth: () => 0.6,
+            vLineWidth: () => 0.5,
 
-            hLineColor: () => '#CBD5E1',
+            hLineColor: () => '#B8B8B8',
 
-            vLineColor: () => '#CBD5E1'
+            vLineColor: () => '#B8B8B8',
+
+            paddingLeft: () => 7,
+
+            paddingRight: () => 7,
+
+            paddingTop: () => 4,
+
+            paddingBottom: () => 4
 
           },
 
-          margin: [0, 0, 0, 15]
+          margin: [0, 0, 0, 8]
         },
-
 
         // =================================================
         // FOOTER
         // =================================================
-
         {
-          canvas: [
+          table: {
 
-            {
-              type: 'line',
+            widths: ['*'],
 
-              x1: 0,
+            body: [[
 
-              y1: 0,
+              {
+                text:
+                  'Thank you for choosing the Odoh Publishers',
 
-              x2: 515,
+                fontSize: 7,
 
-              y2: 0,
+                color: 'white',
 
-              lineWidth: 1,
+                fillColor: '#0645F5',
 
-              lineColor: '#102A56'
-            }
+                alignment: 'center',
 
-          ],
+                margin: [5, 5, 5, 5]
+              }
 
-          margin: [0, 0, 0, 10]
-        },
+            ]]
 
+          },
 
-        {
-          text:
-            'Thank you for choosing The Odoh Publishers.',
+          layout: 'noBorders',
 
-          fontSize: 10,
-
-          bold: true,
-
-          color: '#102A56',
-
-          alignment: 'center'
+          margin: [0, 0, 0, 0]
         }
 
       ],
 
-
       // ===================================================
       // STYLES
       // ===================================================
-
       styles: {
 
         sectionHeader: {
 
-          fontSize: 12,
+          fontSize: 9,
 
           bold: true,
 
-          color: '#102A56',
+          color: 'white',
 
-          margin: [0, 6, 0, 7]
+          fillColor: '#0645F5',
+
+          margin: [0, 0, 0, 0]
 
         }
 
       }
 
     };
-      // Generate and download PDF
-      pdfMake.createPdf(docDefinition).download(fileName);
 
-      toast({
-        title: "Success",
-        description: "Quote PDF generated successfully!",
-      });
+    // =====================================================
+    // GENERATE PDF
+    // =====================================================
+    pdfMake
+      .createPdf(docDefinition)
+      .download(fileName);
 
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  } catch (error) {
+
+    console.error(
+      'PDF generation error:',
+      error
+    );
+
+    toast({
+      title: "Error",
+      description:
+        "There was an error generating the quotation PDF.",
+      variant: "destructive",
+    });
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-royal-blue-light via-background to-royal-blue-light/50">
@@ -1670,219 +1825,125 @@ if (quote.interiorType === "B/W & Colour") {
 
   <CardContent className="p-6">
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="grid-cols-2 lg:grid-cols-2 gap-5">
 
-      {/* =================================
-          EDITING SERVICES
-      ================================== */}
-      <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
+     
+      
+     
 
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
-            <PenTool className="w-5 h-5" />
-          </div>
+  {/* =================================
+      EDITING SERVICES
+  ================================== */}
+  <div className="  rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
 
-          <div>
-            <h3 className="font-semibold text-base">
-              Editing & Cover Services
-            </h3>
-
-            <p className="text-xs text-muted-foreground">
-              Additional publishing and editing services
-            </p>
-          </div>
-        </div>
-
- {/* =================================
-          COVER SERVICES
-      ================================== */}
-      <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
-
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
-            <BookOpen className="w-5 h-5" />
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-base">
-              Cover Services
-            </h3>
-
-            <p className="text-xs text-muted-foreground">
-              Configure the book cover
-            </p>
-          </div>
-        </div>
-
-
-        <div className="space-y-4">
-
-          {/* Cover Type */}
-          <div>
-            <Label
-              htmlFor="coverType"
-              className="flex items-center gap-2 mb-2"
-            >
-              <Book className="w-4 h-4" />
-              Cover Type
-            </Label>
-
-            <Select
-              value={quote.coverType}
-              onValueChange={(value) =>
-                setQuote(prev => ({
-                  ...prev,
-                  coverType: value
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select cover type" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="Soft">
-                  Soft Cover
-                </SelectItem>
-
-                <SelectItem value="Hard">
-                  Hard Cover
-                </SelectItem>
-
-                <SelectItem value="Folded">
-                  Folded Cover
-                </SelectItem>
-
-                <SelectItem value="Hard+Folded">
-                  Hard + Folded
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-
-          {/* Conditional Cover Prices */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-            {(quote.coverType === "Hard" ||
-              quote.coverType === "Hard+Folded") && (
-              <div>
-                <Label
-                  htmlFor="hardCoverPrice"
-                  className="mb-2 block text-xs"
-                >
-                  Hard Cover / Copy
-                </Label>
-
-                <Input
-                  id="hardCoverPrice"
-                  type="number"
-                  value={quote.hardCoverPrice || ""}
-                  onChange={(e) =>
-                    setQuote(prev => ({
-                      ...prev,
-                      hardCoverPrice:
-                        parseFloat(e.target.value) || 0
-                    }))
-                  }
-                  placeholder="NGN"
-                />
-              </div>
-            )}
-
-
-            {(quote.coverType === "Folded" ||
-              quote.coverType === "Hard+Folded") && (
-              <div>
-                <Label
-                  htmlFor="foldedCoverPrice"
-                  className="mb-2 block text-xs"
-                >
-                  Folded Cover / Copy
-                </Label>
-
-                <Input
-                  id="foldedCoverPrice"
-                  type="number"
-                  value={quote.foldedCoverPrice || ""}
-                  onChange={(e) =>
-                    setQuote(prev => ({
-                      ...prev,
-                      foldedCoverPrice:
-                        parseFloat(e.target.value) || 0
-                    }))
-                  }
-                  placeholder="NGN"
-                />
-              </div>
-            )}
-
-          </div>
-
-        </div>
+    <div className="flex items-center gap-3 mb-5">
+      <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
+        <PenTool className="w-5 h-5" />
       </div>
-        <div className="space-y-3">
 
-          {/* Design */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label
-                htmlFor="includeDesign"
-                className="cursor-pointer font-medium"
-              >
-                Design
-              </Label>
+      <div>
+        <h3 className="font-semibold text-base">
+          Editing Services
+        </h3>
 
-              <p className="text-xs text-muted-foreground mt-1">
-                Cover/interior design service
-              </p>
-            </div>
+        <p className="text-xs text-muted-foreground">
+          Additional editing and publishing services
+        </p>
+      </div>
+    </div>
 
-            <Switch
-              id="includeDesign"
-              checked={quote.includeDesign}
-              onCheckedChange={(checked) =>
-                setQuote(prev => ({
-                  ...prev,
-                  includeDesign: checked
-                }))
-              }
-            />
-          </div>
+    <div className="space-y-3">
 
+      {/* Editing */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeEditing"
+            className="cursor-pointer font-medium"
+          >
+            Editing
+          </Label>
 
-          {/* ISBN */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label
-                htmlFor="includeISBN"
-                className="cursor-pointer font-medium"
-              >
-                ISBN
-              </Label>
-
-              <p className="text-xs text-muted-foreground mt-1">
-                ISBN registration service
-              </p>
-            </div>
-
-            <Switch
-              id="includeISBN"
-              checked={quote.includeISBN}
-              onCheckedChange={(checked) =>
-                setQuote(prev => ({
-                  ...prev,
-                  includeISBN: checked
-                }))
-              }
-            />
-          </div>
-
+          <p className="text-xs text-muted-foreground mt-1">
+            Professional manuscript editing
+          </p>
         </div>
+
+        <Switch
+          id="includeEditing"
+          checked={quote.includeEditing}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeEditing: checked
+            }))
+          }
+        />
       </div>
 
 
-      {/* =================================
+      {/* Proofreading */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeProofreading"
+            className="cursor-pointer font-medium"
+          >
+            Proofreading
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Final proofreading and corrections
+          </p>
+        </div>
+
+        <Switch
+          id="includeProofreading"
+          checked={quote.includeProofreading}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeProofreading: checked
+            }))
+          }
+        />
+      </div>
+
+
+      {/* ISBN */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeISBN"
+            className="cursor-pointer font-medium"
+          >
+            ISBN
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            ISBN registration service
+          </p>
+        </div>
+
+        <Switch
+          id="includeISBN"
+          checked={quote.includeISBN}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeISBN: checked
+            }))
+          }
+        />
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+
+ 
+       {/* =================================
           INTERIOR SERVICES
       ================================== */}
       <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
@@ -2181,86 +2242,202 @@ if (quote.interiorType === "B/W & Colour") {
               </div>
             </div>
           )}
+          <div className="space-y-3">
+
+      {/* Interior Design */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeInteriorDesign"
+            className="cursor-pointer font-medium"
+          >
+            Interior Design
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Professional interior book design
+          </p>
+        </div>
+
+        <Switch
+          id="includeInteriorDesign"
+          checked={quote.includeInteriorDesign}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeInteriorDesign: checked
+            }))
+          }
+        />
+      </div>
+
+    </div>
 
         </div>
       </div>
 
 
      
+ {/* =================================
+      COVER SERVICES
+  ================================== */}
+  <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
+
+    <div className="flex items-center gap-3 mb-5">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
+        <BookOpen className="w-5 h-5" />
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-base">
+          Cover Services
+        </h3>
+
+        <p className="text-xs text-muted-foreground">
+          Configure the book cover
+        </p>
+      </div>
+    </div>
 
 
-      {/* =================================
-          FINISHING SERVICES
-      ================================== */}
-      <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
+    <div className="space-y-4">
 
-        <div className="flex items-center gap-3 mb-5">
+      {/* Cover Type */}
+      <div>
+        <Label
+          htmlFor="coverType"
+          className="flex items-center gap-2 mb-2"
+        >
+          <Book className="w-4 h-4" />
+          Cover Type
+        </Label>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
-            <Settings className="w-5 h-5" />
-          </div>
+        <Select
+          value={quote.coverType}
+          onValueChange={(value) =>
+            setQuote(prev => ({
+              ...prev,
+              coverType: value
+            }))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select cover type" />
+          </SelectTrigger>
 
-          <div>
-            <h3 className="font-semibold text-base">
-              Finishing Services
-            </h3>
+          <SelectContent>
+            <SelectItem value="Soft">
+              Soft Cover
+            </SelectItem>
 
-            <p className="text-xs text-muted-foreground">
-              Finishing and packaging charges
-            </p>
-          </div>
+            <SelectItem value="Hard">
+              Hard Cover
+            </SelectItem>
 
+            <SelectItem value="Folded">
+              Folded Cover
+            </SelectItem>
+
+            <SelectItem value="Hard+Folded">
+              Hard + Folded
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+
+      {/* Cover Design */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeCoverDesign"
+            className="cursor-pointer font-medium"
+          >
+            Cover Design
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Professional book cover design
+          </p>
         </div>
 
-
-        <div className="space-y-4">
-
-          {/* Finishing Cost */}
-          <div className="flex items-center justify-between rounded-lg border bg-royal-blue-light/60 p-4">
-
-            <div>
-              <p className="font-medium text-royal-blue">
-                Finishing Cost
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                Automatically calculated
-              </p>
-            </div>
-
-            <span className="font-bold text-royal-blue">
-              {formatCurrency(calculations.finishingCost)}
-            </span>
-
-          </div>
-
-
-          {/* Packaging Cost */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-
-            <div>
-              <p className="font-medium">
-                Packaging Cost
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                Automatically calculated
-              </p>
-            </div>
-
-            <span className="font-bold">
-              {formatCurrency(calculations.packagingCost)}
-            </span>
-
-          </div>
-
-
-          
-          
-
-        
-    </div>    
+        <Switch
+          id="includeCoverDesign"
+          checked={quote.includeCoverDesign}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeCoverDesign: checked
+            }))
+          }
+        />
       </div>
+
+
+      {/* Hard / Folded Prices */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+        {(quote.coverType === "Hard" ||
+          quote.coverType === "Hard+Folded") && (
+
+          <div>
+            <Label
+              htmlFor="hardCoverPrice"
+              className="mb-2 block text-xs"
+            >
+              Hard Cover / Copy
+            </Label>
+
+            <Input
+              id="hardCoverPrice"
+              type="number"
+              value={quote.hardCoverPrice || ""}
+              onChange={(e) =>
+                setQuote(prev => ({
+                  ...prev,
+                  hardCoverPrice:
+                    parseFloat(e.target.value) || 0
+                }))
+              }
+              placeholder="NGN"
+            />
+          </div>
+        )}
+
+
+        {(quote.coverType === "Folded" ||
+          quote.coverType === "Hard+Folded") && (
+
+          <div>
+            <Label
+              htmlFor="foldedCoverPrice"
+              className="mb-2 block text-xs"
+            >
+              Folded Cover / Copy
+            </Label>
+
+            <Input
+              id="foldedCoverPrice"
+              type="number"
+              value={quote.foldedCoverPrice || ""}
+              onChange={(e) =>
+                setQuote(prev => ({
+                  ...prev,
+                  foldedCoverPrice:
+                    parseFloat(e.target.value) || 0
+                }))
+              }
+              placeholder="NGN"
+            />
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  </div>
+
+     
 {/* =================================
           OTHER SERVICES
       ================================== */}
@@ -2552,7 +2729,7 @@ if (quote.interiorType === "B/W & Colour") {
 
           </div>
 
-        </div>
+        
         
       </div>
   </CardContent>
@@ -2566,7 +2743,7 @@ if (quote.interiorType === "B/W & Colour") {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Line Items */}
                   <div className="space-y-3">
                     <div className="flex justify-between">
@@ -2589,12 +2766,37 @@ if (quote.interiorType === "B/W & Colour") {
                       <span>Packaging Cost:</span>
                       <span className="font-semibold text-right">{formatCurrency(calculations.packagingCost)}</span>
                     </div>
-                    {quote.includeDesign && (
+                    {quote.includeCoverDesign && (
                       <div className="flex justify-between">
-                        <span>Design:</span>
-                        <span className="font-semibold text-right">{formatCurrency(calculations.designCost)}</span>
+                        <span>Cover Design:</span>
+                        <span className="font-semibold text-right">{formatCurrency(calculations.coverDesignCost)}</span>
                       </div>
+                      
                     )}
+                    {quote.includeInteriorDesign && (
+                      <div className="flex justify-between">
+                        <span>Interior Design:</span>
+                        <span className="font-semibold text-right">{formatCurrency(calculations.interiorDesignCost)}</span>
+                      </div>
+                      
+                    )}
+
+                    {quote.includeProofreading && (
+                      <div className="flex justify-between">
+                        <span>Proofreading:</span>
+                        <span className="font-semibold text-right">{formatCurrency(calculations.proofreadingCost)}</span>
+                      </div>
+                      
+                    )}
+
+                    {quote.includeEditing && (
+                      <div className="flex justify-between">
+                        <span>Editing:</span>
+                        <span className="font-semibold text-right">{formatCurrency(calculations.editingCost)}</span>
+                      </div>
+                      
+                    )}
+
                     {quote.includeISBN && (
                       <div className="flex justify-between">
                         <span>ISBN:</span>
