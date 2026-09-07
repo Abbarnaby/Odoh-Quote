@@ -559,7 +559,7 @@ if (quote.interiorType === "B/W & Colour") {
       const printingCostTotal = printingCostSubTotal;
       // Calculate additional services total (excluding BHR and Profit Margin)
       const additionalServicesTotal = calculations.coverDesignCost  +   calculations.interiorDesignCost +
-  calculations.editingCost +
+  calculations.editingCost + calculations.otherscost +
   calculations.proofreadingCost + calculations.isbnCost  - quote.applyBulkDiscount;
 
       
