@@ -19,10 +19,16 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pdfMake from 'pdfmake/build/pdfmake';
+import { gothamVfs } from "@/assets/fonts/gothamVfs";
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import gothamBook from "@/assets/fonts/Gotham-Book.ttf";
+import gothamMedium from "@/assets/fonts/Gotham-Medium.ttf";
+import gothamBold from "@/assets/fonts/Gotham-Bold.ttf";
+import gothamBlack from "@/assets/fonts/Gotham-Black.ttf";
 import { supabase } from '@/integrations/supabase/client';
 import odohlogo from '@/assets/Odoh.jpg';
 import odohlogo1 from '@/assets/Odoh2.png';
+import odohlogo2 from '@/assets/whitelogo.png';
 import AdditionalServices from './admin/AdditionalServices';
 // 🔒 Maintenance mode – set to false to enable the app
 const MAINTENANCE_MODE = false;
@@ -541,8 +547,31 @@ if (quote.interiorType === "B/W & Colour") {
 
     try {
       // Configure pdfMake with fonts
-      pdfMake.vfs = pdfFonts.vfs;
-        const logoBase64 = await getBase64Image(odohlogo1);
+   pdfMake.vfs = {
+  ...pdfFonts.vfs,
+  ...gothamVfs,
+};
+
+pdfMake.fonts = {
+  Roboto: {
+    normal: "Roboto-Regular.ttf",
+    bold: "Roboto-Medium.ttf",
+    italics: "Roboto-Italic.ttf",
+    bolditalics: "Roboto-MediumItalic.ttf",
+  },
+
+  Gotham: {
+    normal: "Gotham-Book.ttf",
+    bold: "Gotham-Bold.ttf",
+    italics: "Gotham-Book.ttf",
+    bolditalics: "Gotham-Bold.ttf",
+  },
+};
+console.log("Gotham Bold exists:", !!pdfMake.vfs["Gotham-Bold.ttf"]);
+console.log("Gotham fonts:", Object.keys(pdfMake.vfs).filter(
+  key => key.toLowerCase().includes("gotham")
+));
+        const logoBase64 = await getBase64Image(odohlogo2);
 
       // Generate quote details
       const quotationId = `QT-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`;
@@ -554,12 +583,12 @@ if (quote.interiorType === "B/W & Colour") {
       });
 
       // Calculate printing cost total (includes BHR and Profit Margin internally)
-      const printingCostSubTotal = calculations.paperCost + calculations.tonerCost + calculations.coverCost + calculations.finishingCost + calculations.packagingCost + calculations.bhrCost + calculations.profitAmount + calculations.othersCost + calculations.vat ;
+      const printingCostSubTotal = calculations.paperCost + calculations.tonerCost + calculations.coverCost + calculations.finishingCost + calculations.packagingCost + calculations.bhrCost + calculations.profitAmount + calculations.vat ;
        
       const printingCostTotal = printingCostSubTotal;
       // Calculate additional services total (excluding BHR and Profit Margin)
       const additionalServicesTotal = calculations.coverDesignCost  +   calculations.interiorDesignCost +
-  calculations.editingCost + calculations.othersCost +
+  calculations.editingCost +   calculations.othersCost +
   calculations.proofreadingCost + calculations.isbnCost  - quote.applyBulkDiscount;
 
       
@@ -568,6 +597,10 @@ if (quote.interiorType === "B/W & Colour") {
     // =====================================================
 
     const docDefinition: any = {
+      
+      defaultStyle: {
+  font: "Roboto",
+},
 
       pageSize: 'A4',
 
@@ -621,7 +654,7 @@ if (quote.interiorType === "B/W & Colour") {
                       'Expressway, Mahuta,\n' +
                       'Kaduna State, Nigeria.',
 
-                    fontSize: 6.5,
+                    fontSize: 8.5,
                     color: 'white',
                     alignment: 'right',
                     margin: [0, 2, 0, 0]
@@ -631,7 +664,7 @@ if (quote.interiorType === "B/W & Colour") {
                     text:
                       'Phone: 07025665328',
 
-                    fontSize: 6.5,
+                    fontSize: 8.5,
                     color: 'white',
                     alignment: 'right',
                     margin: [0, 2, 0, 0]
@@ -641,7 +674,7 @@ if (quote.interiorType === "B/W & Colour") {
                     text:
                       'Email: the.odoh.publishers.ltd@gmail.com',
 
-                    fontSize: 6.5,
+                    fontSize: 8.5,
                     color:'white',
                     alignment: 'right'
                   }
@@ -1474,7 +1507,7 @@ fillColor: '#0645F5',
 
                 bold: true,
 
-                fontSize: 8,
+                fontSize: 12,
 
                 color: 'white',
 
@@ -1503,7 +1536,7 @@ fillColor: '#0645F5',
               [
                 {
                   text: 'Bank Name',
-                  fontSize: 7
+                  fontSize: 12,
                 },
 
                 {
@@ -1514,14 +1547,14 @@ fillColor: '#0645F5',
 
                 {
                   text: 'MoniePoint',
-                  fontSize: 7
+                  fontSize: 12
                 }
               ],
 
               [
                 {
                   text: 'Account No',
-                  fontSize: 7
+                  fontSize: 12
                 },
 
                 {
@@ -1532,14 +1565,14 @@ fillColor: '#0645F5',
 
                 {
                   text: '6238593555',
-                  fontSize: 7
+                  fontSize: 12
                 }
               ],
 
               [
                 {
                   text: 'Account Name',
-                  fontSize: 7
+                  fontSize: 12
                 },
 
                 {
@@ -1550,7 +1583,7 @@ fillColor: '#0645F5',
 
                 {
                   text: 'The Odoh Publishers Ltd',
-                  fontSize: 7
+                  fontSize: 12
                 }
               ]
 
@@ -1595,7 +1628,7 @@ fillColor: '#0645F5',
                 text:
                   'Thank you for choosing the Odoh Publishers',
 
-                fontSize: 7,
+                fontSize: 10,
 
                 color: 'white',
 
@@ -1913,7 +1946,62 @@ fillColor: '#0645F5',
           }
         />
       </div>
+<div className="space-y-3">
 
+      {/* Interior Design */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeInteriorDesign"
+            className="cursor-pointer font-medium"
+          >
+            Interior Design
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Professional interior book design
+          </p>
+        </div>
+
+        <Switch
+          id="includeInteriorDesign"
+          checked={quote.includeInteriorDesign}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeInteriorDesign: checked
+            }))
+          }
+        />
+      </div>
+
+    </div>
+     {/* Cover Design */}
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label
+            htmlFor="includeCoverDesign"
+            className="cursor-pointer font-medium"
+          >
+            Cover Design
+          </Label>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Professional book cover design
+          </p>
+        </div>
+
+        <Switch
+          id="includeCoverDesign"
+          checked={quote.includeCoverDesign}
+          onCheckedChange={(checked) =>
+            setQuote(prev => ({
+              ...prev,
+              includeCoverDesign: checked
+            }))
+          }
+        />
+      </div>
 
       {/* Proofreading */}
       <div className="flex items-center justify-between rounded-lg border p-3">
@@ -2107,19 +2195,7 @@ fillColor: '#0645F5',
                     />
                   </div>
                 </div>
-                <div className="bg-royal-blue-light p-4 rounded-lg border border-royal-blue/20">
-                  <div className="flex items-center gap-2 text-royal-blue font-semibold">
-                    <FileStack className="w-4 h-4" />
-                    Total Pages to Print: <span className="font-bold">{(quote.pageCount * quote.copies).toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-
-        <div className="space-y-4">
-
-          {/* Paper */}
+{/* Paper */}
           <div>
             <Label
               htmlFor="paperType"
@@ -2277,198 +2353,29 @@ fillColor: '#0645F5',
           )}
           <div className="space-y-3">
 
-      {/* Interior Design */}
-      <div className="flex items-center justify-between rounded-lg border p-3">
-        <div>
-          <Label
-            htmlFor="includeInteriorDesign"
-            className="cursor-pointer font-medium"
-          >
-            Interior Design
-          </Label>
-
-          <p className="text-xs text-muted-foreground mt-1">
-            Professional interior book design
-          </p>
-        </div>
-
-        <Switch
-          id="includeInteriorDesign"
-          checked={quote.includeInteriorDesign}
-          onCheckedChange={(checked) =>
-            setQuote(prev => ({
-              ...prev,
-              includeInteriorDesign: checked
-            }))
-          }
-        />
-      </div>
-
+     
     </div>
+
+                <div className="bg-royal-blue-light p-4 rounded-lg border border-royal-blue/20">
+                  <div className="flex items-center gap-2 text-royal-blue font-semibold">
+                    <FileStack className="w-4 h-4" />
+                    Total Pages to Print: <span className="font-bold">{(quote.pageCount * quote.copies).toLocaleString()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+
+        <div className="space-y-4">
+
+          
 
         </div>
       </div>
 
 
      
- {/* =================================
-      COVER SERVICES
-  ================================== */}
-  <div className="rounded-xl border border-royal-blue/20 bg-card p-5 shadow-sm">
 
-    <div className="flex items-center gap-3 mb-5">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-royal-blue-light text-royal-blue">
-        <BookOpen className="w-5 h-5" />
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-base">
-          Cover Services
-        </h3>
-
-        <p className="text-xs text-muted-foreground">
-          Configure the book cover
-        </p>
-      </div>
-    </div>
-
-
-    <div className="space-y-4">
-
-      {/* Cover Type */}
-      <div>
-        <Label
-          htmlFor="coverType"
-          className="flex items-center gap-2 mb-2"
-        >
-          <Book className="w-4 h-4" />
-          Cover Type
-        </Label>
-
-        <Select
-          value={quote.coverType}
-          onValueChange={(value) =>
-            setQuote(prev => ({
-              ...prev,
-              coverType: value
-            }))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select cover type" />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="Soft">
-              Soft Cover
-            </SelectItem>
-
-            <SelectItem value="Hard">
-              Hard Cover
-            </SelectItem>
-
-            <SelectItem value="Folded">
-              Folded Cover
-            </SelectItem>
-
-            <SelectItem value="Hard+Folded">
-              Hard + Folded
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-
-      {/* Cover Design */}
-      <div className="flex items-center justify-between rounded-lg border p-3">
-        <div>
-          <Label
-            htmlFor="includeCoverDesign"
-            className="cursor-pointer font-medium"
-          >
-            Cover Design
-          </Label>
-
-          <p className="text-xs text-muted-foreground mt-1">
-            Professional book cover design
-          </p>
-        </div>
-
-        <Switch
-          id="includeCoverDesign"
-          checked={quote.includeCoverDesign}
-          onCheckedChange={(checked) =>
-            setQuote(prev => ({
-              ...prev,
-              includeCoverDesign: checked
-            }))
-          }
-        />
-      </div>
-
-
-      {/* Hard / Folded Prices */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-        {(quote.coverType === "Hard" ||
-          quote.coverType === "Hard+Folded") && (
-
-          <div>
-            <Label
-              htmlFor="hardCoverPrice"
-              className="mb-2 block text-xs"
-            >
-              Hard Cover / Copy
-            </Label>
-
-            <Input
-              id="hardCoverPrice"
-              type="number"
-              value={quote.hardCoverPrice || ""}
-              onChange={(e) =>
-                setQuote(prev => ({
-                  ...prev,
-                  hardCoverPrice:
-                    parseFloat(e.target.value) || 0
-                }))
-              }
-              placeholder="NGN"
-            />
-          </div>
-        )}
-
-
-        {(quote.coverType === "Folded" ||
-          quote.coverType === "Hard+Folded") && (
-
-          <div>
-            <Label
-              htmlFor="foldedCoverPrice"
-              className="mb-2 block text-xs"
-            >
-              Folded Cover / Copy
-            </Label>
-
-            <Input
-              id="foldedCoverPrice"
-              type="number"
-              value={quote.foldedCoverPrice || ""}
-              onChange={(e) =>
-                setQuote(prev => ({
-                  ...prev,
-                  foldedCoverPrice:
-                    parseFloat(e.target.value) || 0
-                }))
-              }
-              placeholder="NGN"
-            />
-          </div>
-        )}
-
-      </div>
-
-    </div>
-  </div>
 
      
 {/* =================================
@@ -2490,10 +2397,42 @@ fillColor: '#0645F5',
             <p className="text-xs text-muted-foreground">
               Additional charges
             </p>
+
+          </div>
           </div>
 
-            <div className="flex items-center justify-between">
+            
 
+          {/* VAT */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+
+            <div>
+              <Label
+                htmlFor="includeVAT"
+                className="cursor-pointer font-medium"
+              >
+                Apply VAT
+              </Label>
+
+              <p className="text-xs text-muted-foreground mt-1">
+                VAT at 7.5%
+              </p>
+            </div>
+
+            <Switch
+              id="includeVAT"
+              checked={quote.includeVAT}
+              onCheckedChange={(checked) =>
+                setQuote(prev => ({
+                  ...prev,
+                  includeVAT: checked
+                }))
+              }
+            />
+
+          </div>
+
+<div className="flex items-center justify-between rounded-lg border p-4">
               <div>
                 <Label
                   htmlFor="includeBHR"
@@ -2548,37 +2487,7 @@ fillColor: '#0645F5',
               </div>
             )}
 
-          </div>
-
-
-          {/* VAT */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-
-            <div>
-              <Label
-                htmlFor="includeVAT"
-                className="cursor-pointer font-medium"
-              >
-                Apply VAT
-              </Label>
-
-              <p className="text-xs text-muted-foreground mt-1">
-                VAT at 7.5%
-              </p>
-            </div>
-
-            <Switch
-              id="includeVAT"
-              checked={quote.includeVAT}
-              onCheckedChange={(checked) =>
-                setQuote(prev => ({
-                  ...prev,
-                  includeVAT: checked
-                }))
-              }
-            />
-
-          </div>
+          
 
 
           {/* Bulk Discount */}
@@ -2632,6 +2541,8 @@ fillColor: '#0645F5',
             )}
 
           </div>
+
+          
 
 
           {/* Other Charges */}
