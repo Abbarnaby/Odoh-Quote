@@ -1,3 +1,40 @@
+/* =========================================
+   GOTHAM FONT FAMILY
+========================================= */
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('./assets/fonts/Gotham-Book.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('./assets/fonts/Gotham-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('./assets/fonts/Gotham-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('./assets/fonts/Gotham-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -125,7 +162,8 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+ body {
+  @apply bg-background text-foreground;
+  font-family: 'Gotham', sans-serif;
+}
 }
